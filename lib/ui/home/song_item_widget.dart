@@ -2,19 +2,28 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:music_app/data/model/song.dart';
-import 'package:music_app/ui/home/home.dart';
 
 class SongItemWidget extends StatelessWidget {
-  final VoidCallback onTap; // Gọi về parent
+  // final ValueChanged<int> onTap; // callback nhận 1 int
+  //  final int songId;
+  final void Function(BuildContext) onTap; // Gọi về parent
+  final VoidCallback onTrailing; // Gọi về parent
   final Song song;
 
-  const SongItemWidget({super.key, required this.onTap, required this.song});
+  const SongItemWidget({
+    super.key,
+    required this.onTap,
+    required this.song,
+    required this.onTrailing,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      contentPadding: EdgeInsets.only(left: 24, right: 8),
       // tileColor: Colors.blue.shade50,       // màu nền khi bình thường
-      selectedTileColor: Colors.lightBlueAccent, // màu khi selected = true
+      selectedTileColor: Colors.lightBlueAccent,
+      // màu khi selected = true
       leading: ClipRRect(
         // Bo tròn hình ảnh
         borderRadius: BorderRadius.circular(100),
@@ -30,19 +39,17 @@ class SongItemWidget extends StatelessWidget {
           },
         ),
       ),
-      title: Text(song.title, style: TextStyle(
-        fontWeight:FontWeight.bold,
-      ),),
-      subtitle: Text(song.artist, style:
-        TextStyle(
-          color: Color.fromRGBO(110, 102, 1, 1.0),
-        ),),
-      trailing: IconButton(
-          icon: Icon(Icons.more_horiz),
-          onPressed: () {
-
+      title: Text(song.title, style: TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(
+        song.artist,
+        style: TextStyle(color: Color.fromRGBO(110, 102, 1, 1.0)),
+      ),
+      trailing: IconButton(icon: Icon(Icons.more_horiz), onPressed: () {
+        onTrailing(); // Gọi callback về parent
       }),
-
+      onTap: () {
+        onTap(context); // Gọi callback về parent
+      },
     );
   }
 }

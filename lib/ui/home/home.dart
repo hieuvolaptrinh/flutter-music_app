@@ -1,109 +1,12 @@
 import "package:flutter/material.dart";
 import "package:music_app/data/model/song.dart";
-import "package:music_app/ui/discovery/discovery.dart";
+
 import "package:music_app/ui/home/song_item_widget.dart";
-import "package:music_app/ui/settings/setting.dart";
-import "package:music_app/ui/user/User.dart";
+import "package:music_app/ui/now_playing/playing.dart";
+
 import "package:music_app/viewmodel/home_viewmodel.dart";
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class MusicApp extends StatelessWidget {
-  const MusicApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "Music App",
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Color.fromRGBO(0, 110, 255, 1.0),
-        ),
-        useMaterial3: true,
-      ),
-      home: SafeArea(child: MusicHomePage()),
-      //   xóa debug banner
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-class MusicHomePage extends StatefulWidget {
-  const MusicHomePage({super.key});
-
-  @override
-  State<MusicHomePage> createState() => _MusicHomePageState();
-}
-
-class _MusicHomePageState extends State<MusicHomePage> {
-  int _selectedIndex = 0;
-  final List<Widget> _tabs = [HomeTab(), Discovery(), Setting(), User()];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // android phong cách material
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Music App", style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.purpleAccent,
-        ),),
-        centerTitle: true,
-        backgroundColor: Theme.of(
-          context,
-        ).colorScheme.primary, // nó sẽ ăn theo cái theme đã tạo ở trên
-      ),
-      body: _tabs[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        // màu sắc của item được chọn
-        onTap: _onItemTapped,
-        unselectedItemColor: Color.fromRGBO(1, 1, 1, 1),
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.album), label: "Discovery"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: "Settings",
-          ),
-        ],
-      ),
-    );
-
-    // dưới này là phong cách Ios
-    // return CupertinoPageScaffold(
-    //   navigationBar: CupertinoNavigationBar(middle: Text("Music App  ")),
-    //   child: CupertinoTabScaffold(
-    //     tabBar: CupertinoTabBar(
-    //       backgroundColor: Theme.of(context).colorScheme.onInverseSurface,
-    //       items: [
-    //         BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-    //         BottomNavigationBarItem(
-    //           icon: Icon(Icons.album),
-    //           label: "Discovery",
-    //         ),
-    //         BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
-    //         BottomNavigationBarItem(
-    //           icon: Icon(Icons.settings),
-    //           label: "Settings",
-    //         ),
-    //       ],
-    //     ),
-    //     tabBuilder: (BuildContext context, int index) {
-    //       return _tabs[index];
-    //     },
-    //   ),
-  }
-}
 
 class HomeTab extends StatelessWidget {
   @override
@@ -178,6 +81,45 @@ class _HomeTabPageState extends State<HomeTabPage> {
     });
   }
 
+  // hàm
+  void showBottomSheet() {
+    showModalBottomSheet(context: context, builder: (context) {
+      return ClipRRect(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        child: Container(
+          height: 300,
+          width: double.infinity,
+          color: Colors.grey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(onPressed: () {
+                
+              }, child: Text("Phát tất cả")),
+
+            ],
+          ),
+        ),
+      );
+    });
+  }
+  void navigate(Song song) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            NowPlaying(
+              playingSong: song,
+              songs: context
+                  .read<MusicAppViewModel>()
+                  .songs,
+            ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // ✅ Lắng nghe ViewModel: UI sẽ tự cập nhật khi có thay đổi
@@ -191,27 +133,39 @@ class _HomeTabPageState extends State<HomeTabPage> {
           return Center(child: Text("Không có bài hát nào."));
         }
         //
-        return ListView.separated(
-          itemBuilder: (context, index) {
-            return SongItemWidget(
-                onTap:(){} ,
-                song: viewModel.songs[index]);
-          },
-          separatorBuilder: (context, index) {
-            return Divider(
-              color: Colors.grey,
-              thickness: 1,
-              indent: 24,
-              endIndent: 24,
-            );
-          },
-          itemCount: viewModel.songs.length,
-          shrinkWrap: true,
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white70
+          ),
+          child: ListView.separated(
+            itemBuilder: (context, index) {
+              return SongItemWidget(
+                onTrailing: () {
+                  showBottomSheet();
+                },
+                onTap: (context) {
+                  navigate(viewModel.songs[index]);
+                },
+                song: viewModel.songs[index],
+              );
+            },
+            separatorBuilder: (context, index) {
+              return Divider(
+                color: Colors.grey,
+                thickness: 1,
+                indent: 24,
+                endIndent: 24,
+              );
+            },
+            itemCount: viewModel.songs.length,
+            shrinkWrap: true,
+          ),
         );
       },
     );
   }
 }
+
 //
 // class _HomeTabPageState extends State<HomeTabPage> {
 //   List<Song> songs = [];
