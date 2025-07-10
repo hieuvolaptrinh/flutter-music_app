@@ -1,5 +1,9 @@
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:music_app/data/model/duration_state.dart';
 import 'package:music_app/data/model/song.dart';
+import 'package:music_app/ui/now_playing/audio_play_manager.dart';
 
 class NowPlaying extends StatelessWidget {
   const NowPlaying({super.key, required this.playingSong, required this.songs});
@@ -30,6 +34,7 @@ class NowPlayingPage extends StatefulWidget {
 class _NowPlayingPageState extends State<NowPlayingPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _imageAnimationController;
+  late AudioPlayerManager _audioPlayerManager;
 
   @override
   void initState() {
@@ -38,6 +43,8 @@ class _NowPlayingPageState extends State<NowPlayingPage>
       vsync: this,
       duration: const Duration(milliseconds: 12000),
     );
+    _audioPlayerManager = AudioPlayerManager(widget.playingSong.source);
+    _audioPlayerManager.init();
   }
 
   @override
@@ -148,18 +155,199 @@ class _NowPlayingPageState extends State<NowPlayingPage>
                                 ).textTheme.bodyMedium!.color,
                               ),
                         ),
-
                       ],
                     ),
-                    IconButton(onPressed: (){}, icon: Icon(Icons.favorite)
-                    ,color: Theme.of(context).colorScheme.surfaceDim,)
+                    IconButton(
+                      onPressed: () {},
+                      icon: Icon(Icons.favorite),
+                      color: Theme.of(context).colorScheme.surfaceDim,
+                    ),
                   ],
                 ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(
+                  top: 12,
+                  left: 24,
+                  right: 24,
+                  bottom: 12,
+                ),
+                child: _progessBar(),
+              ),
+              Padding(
+                padding: EdgeInsets.only(
+                  top: 8,
+                  left: 24,
+                  right: 24,
+                  bottom: 8,
+                ),
+                child: _mediaButtons(),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _audioPlayerManager
+        .dispose(); // Giải phóng tài nguyên của AudioPlayerManager=> nghĩa là hủy bỏ việc bài hát đang phát nếu thoát màn hình
+    super.dispose();
+  }
+
+  // nut bấm điều khiển media
+  Widget _mediaButtons() {
+    return SizedBox(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          MediaButtonControl(
+            function: null,
+            icon: Icons.shuffle,
+            color: Colors.deepPurple,
+            size: 24,
+          ),
+          MediaButtonControl(
+            function: null,
+            icon: Icons.skip_previous,
+            color: Colors.deepPurple,
+            size: 36,
+          ),
+          _playButton(),
+          MediaButtonControl(
+            function: null,
+            icon: Icons.skip_next,
+            color: Colors.deepPurple,
+            size: 36,
+          ),
+          MediaButtonControl(
+            function: null,
+            icon: Icons.repeat,
+            color: Colors.deepPurple,
+            size: 24,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // thanh tiến độ phát nhạt
+  StreamBuilder<DurationState> _progessBar() {
+    return StreamBuilder<DurationState>(
+      stream: _audioPlayerManager.durationState,
+      builder: (context, snapshot) {
+        final durationState = snapshot.data;
+        final progress = durationState?.progress ?? Duration.zero;
+        final buffered = durationState?.buffered ?? Duration.zero;
+        final total = durationState?.total ?? Duration.zero;
+        return ProgressBar(
+          progress: progress,
+          total: total,
+          buffered: buffered,
+          onSeek: _audioPlayerManager.player.seek,
+          // sự kiện khi người dùng kéo thanh tiến độ
+          barHeight: 5,
+          barCapShape: BarCapShape.round,
+          baseBarColor: Colors.lightBlue.withOpacity(0.6),
+          progressBarColor: Colors.indigo,
+          bufferedBarColor: Colors.lightBlue,
+          thumbColor: Colors.indigoAccent,
+          thumbGlowColor: Colors.orange,
+          thumbRadius: 10,
+        );
+      },
+    );
+  }
+
+  // sự kiện khi nhấn nút play
+  StreamBuilder<PlayerState> _playButton() {
+    return StreamBuilder(
+      stream: _audioPlayerManager.player.playerStateStream,
+      builder: (context, snapshot) {
+        // trạng thái hiện tại của nút play
+        final playState = snapshot.data;
+        final progressingState = playState?.playing;
+        final playing = playState?.playing;
+
+        // nếu đang load hoặc đang tải dữ liệu
+        if (progressingState == ProcessingState.loading ||
+            progressingState == ProcessingState.buffering) {
+          return Container(
+            margin: EdgeInsets.all(8),
+            width: 50,
+            height: 50,
+            child: CircularProgressIndicator(),
+          );
+        }
+        // nếu ko phải đang phát
+        else if (playing != true) {
+          return MediaButtonControl(
+            function: () {
+              _audioPlayerManager.player.play(); // gọi hàm play của AudioPlayer
+            },
+            icon: Icons.play_arrow,
+            color: null,
+            size: 48,
+          );
+        }
+        // nếu chưa phát hết
+        else if (progressingState != ProcessingState.completed) {
+          return MediaButtonControl(
+            function: () {
+              _audioPlayerManager.player
+                  .pause(); // gọi hàm pause của AudioPlayer
+            },
+            icon: Icons.pause,
+            color: null,
+            size: 48,
+          );
+        }
+        // nếu
+        else {
+          return MediaButtonControl(
+            function: () {
+              _audioPlayerManager.player.seek(
+                Duration.zero,
+              ); // gọi hàm seek để quay lại đầu bài hát
+            },
+            icon: Icons.replay,
+            color: null,
+            size: 48,
+          );
+        }
+      },
+    );
+  }
+}
+
+class MediaButtonControl extends StatefulWidget {
+  final void Function()? function;
+  final IconData icon;
+  final Color? color;
+  final double? size;
+
+  const MediaButtonControl({
+    super.key,
+    required this.function,
+    required this.icon,
+    required this.color,
+    required this.size,
+  });
+
+  @override
+  State<MediaButtonControl> createState() => _MediaButtonControlState();
+}
+
+class _MediaButtonControlState extends State<MediaButtonControl> {
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: widget.function,
+      icon: Icon(widget.icon),
+      iconSize: widget.size,
+      color: widget.color ?? Theme.of(context).colorScheme.primary,
     );
   }
 }
