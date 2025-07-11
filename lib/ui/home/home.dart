@@ -7,11 +7,16 @@ import "package:music_app/ui/now_playing/playing.dart";
 import "package:music_app/viewmodel/home_viewmodel.dart";
 import 'package:provider/provider.dart';
 
-
 class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return HomeTabPage();
+    return ChangeNotifierProvider(
+      // create: (context) => HomeViewmodel()..loadSongs(),
+      // Gọi loadSongs ngay khi tạo vì nếu watch ở intState thì sẽ không có dữ liệu
+      create: (context) => HomeViewmodel(),
+
+      child: HomeTabPage(),
+    );
   }
 }
 
@@ -38,7 +43,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
   * ví dụ:
   * @override
     Widget build(BuildContext context) {
-      final viewModel = context.watch<MusicAppViewModel>();
+      final viewModel = context.watch<HomeViewmodel>();
 
       if (viewModel.isLoading) {
         return Center(child: CircularProgressIndicator());
@@ -60,7 +65,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
           children: [
             Text("Music App", style: TextStyle(fontSize: 24)),
             // ✅ Chỉ phần này rebuild khi viewModel thay đổi
-            Consumer<MusicAppViewModel>(
+            Consumer<HomeViewmodel>(
               builder: (context, vm, child) {
                 if (vm.isLoading) return CircularProgressIndicator();
 
@@ -76,46 +81,44 @@ class _HomeTabPageState extends State<HomeTabPage> {
     super.initState();
     // ✅ Lấy ViewModel từ Provider
     Future.delayed(Duration.zero, () {
-      final viewModel = context.read<MusicAppViewModel>();
+      final viewModel = context.read<HomeViewmodel>();
       viewModel.loadSongs(); // Gọi hàm load bài hát
     });
   }
 
   // hàm
   void showBottomSheet() {
-    showModalBottomSheet(context: context, builder: (context) {
-      return ClipRRect(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        child: Container(
-          height: 300,
-          width: double.infinity,
-          color: Colors.grey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton(onPressed: () {
-                
-              }, child: Text("Phát tất cả")),
-
-            ],
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return ClipRRect(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          child: Container(
+            height: 300,
+            width: double.infinity,
+            color: Colors.grey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton(onPressed: () {}, child: Text("Phát tất cả")),
+              ],
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
-  void navigate(Song song) {
+
+  void navigate(Song song, List<Song> songs) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            NowPlaying(
-              playingSong: song,
-              songs: context
-                  .read<MusicAppViewModel>()
-                  .songs,
-            ),
+        builder: (context) => NowPlaying(
+          playingSong: song,
+          songs: songs, // Truyền trực tiếp danh sách songs
+        ),
       ),
     );
   }
@@ -123,7 +126,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
   @override
   Widget build(BuildContext context) {
     // ✅ Lắng nghe ViewModel: UI sẽ tự cập nhật khi có thay đổi
-    return Consumer<MusicAppViewModel>(
+    return Consumer<HomeViewmodel>(
       builder: (context, viewModel, child) {
         // Nếu đang loading thì hiển thị vòng tròn chờ
         if (viewModel.isLoading) {
@@ -134,9 +137,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
         }
         //
         return Container(
-          decoration: BoxDecoration(
-            color: Colors.white70
-          ),
+          decoration: BoxDecoration(color: Colors.white70),
           child: ListView.separated(
             itemBuilder: (context, index) {
               return SongItemWidget(
@@ -144,7 +145,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
                   showBottomSheet();
                 },
                 onTap: (context) {
-                  navigate(viewModel.songs[index]);
+                  navigate(viewModel.songs[index], viewModel.songs);
                 },
                 song: viewModel.songs[index],
               );

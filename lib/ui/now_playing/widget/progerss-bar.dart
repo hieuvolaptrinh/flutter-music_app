@@ -1,7 +1,7 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/data/model/duration_state.dart';
-import 'package:music_app/ui/now_playing/audio_play_manager.dart';
+import 'package:music_app/viewmodel/audio_play_manager.dart';
 
 class ProgressBarWidget extends StatelessWidget {
   final AudioPlayerManager audioPlayerManager ;

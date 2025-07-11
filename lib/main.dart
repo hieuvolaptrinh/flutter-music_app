@@ -8,10 +8,13 @@ import "package:provider/provider.dart";
 
 void main() {
   return runApp(
-    MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => MusicAppViewModel())],
-      child: const MusicApp(),
-    ),
+    // MultiProvider(
+    //   // sử dụng MultiProvider để cung cấp nhiều provider
+    //   // nên để lên đây nếu quản lý provider cho toàn bộ ứng dụng, còn không thì để trong widget con
+    //   providers: [ChangeNotifierProvider(create: (_) => MusicAppViewModel())],
+    //   child: const MusicApp(),
+    // ),
+     MusicApp(),
   );
 }
 
@@ -23,9 +26,7 @@ class MusicApp extends StatelessWidget {
     return MaterialApp(
       title: "Music App",
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.purpleAccent,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.purpleAccent),
         useMaterial3: true,
       ),
       home: SafeArea(child: MusicHomePage()),

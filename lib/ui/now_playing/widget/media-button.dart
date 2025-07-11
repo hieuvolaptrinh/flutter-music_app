@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:music_app/ui/now_playing/audio_play_manager.dart';
+import 'package:music_app/viewmodel/audio_play_manager.dart';
 import 'package:music_app/ui/now_playing/playing.dart';
 
 class MediaControl extends StatelessWidget {
   final AudioPlayerManager audioPlayerManager;
+
+  //
   // final VoidCallback? onShuffle; // trộn bài
   // final VoidCallback? onPrevious; // bài trước
   // final bool isPlaying; // trạng thái đang phát hay không
@@ -28,38 +30,36 @@ class MediaControl extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
+        // Nút trộn bài
         MediaButtonControl(
-          function: () {
-
-          },
+          function: ()=> audioPlayerManager.shuffle(),
           icon: Icons.shuffle,
           color: Colors.deepPurple,
           size: 24,
         ),
+        // Nút bài trước
         MediaButtonControl(
           function: () {
-
+            audioPlayerManager.skipPrevious();
           },
           icon: Icons.skip_previous,
           color: Colors.deepPurple,
           size: 36,
         ),
-        PlayButton(
-          audioPlayerManager: audioPlayerManager,
-          size: 48,
-        ),
+        // Nút phát/tạm dừng
+        PlayButton(audioPlayerManager: audioPlayerManager, size: 48),
+        // Nút bài tiếp theo
         MediaButtonControl(
           function: () {
-
+            audioPlayerManager.skipNext();
           },
           icon: Icons.skip_next,
           color: Colors.deepPurple,
           size: 36,
         ),
+        // Nút lặp lại bài
         MediaButtonControl(
-          function: () {
-
-          },
+          function: ()=>audioPlayerManager.repeat(),
           icon: Icons.repeat,
           color: Colors.deepPurple,
           size: 24,
@@ -68,6 +68,7 @@ class MediaControl extends StatelessWidget {
     );
   }
 }
+
 /// PlayButton widget: tùy theo trạng thái của audio player, hiển thị
 /// nút loading, play, pause hoặc replay.
 class PlayButton extends StatelessWidget {
