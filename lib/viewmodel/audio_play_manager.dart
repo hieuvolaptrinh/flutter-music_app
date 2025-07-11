@@ -15,6 +15,7 @@ class AudioPlayerManager extends ChangeNotifier {
   int selectedIndexItem;
 
   bool isShuffle = false; // để trộn bài hát
+  late LoopMode loopMode;
 
   AudioPlayerManager(this.selectedIndexItem, this.songs);
 
@@ -45,6 +46,7 @@ class AudioPlayerManager extends ChangeNotifier {
         );
       },
     );
+    loopMode = LoopMode.off; // Mặc định không lặp lại
     player.setUrl(songs[selectedIndexItem].source);
   }
 
@@ -74,13 +76,15 @@ class AudioPlayerManager extends ChangeNotifier {
   }
 
   void skipNext() {
-    if (selectedIndexItem < songs.length - 1) {
-      if (isShuffle) {
-        var random = Random();
-        selectedIndexItem = random.nextInt(songs.length - 1);
-      } else {
-        selectedIndexItem++;
-      }
+    if (isShuffle) {
+      var random = Random();
+      selectedIndexItem = random.nextInt(songs.length);
+    } else if (loopMode == LoopMode.all &&
+        selectedIndexItem == songs.length - 1) {
+      selectedIndexItem =
+          0; // Nếu đang ở bài cuối và lặp lại tất cả, quay về bài đầu tiên
+    } else if (selectedIndexItem < songs.length - 1) {
+      selectedIndexItem++;
     } else {
       selectedIndexItem = 0;
     }
@@ -96,13 +100,13 @@ class AudioPlayerManager extends ChangeNotifier {
   }
 
   void skipPrevious() {
-    if (selectedIndexItem > 0) {
-      if (isShuffle) {
-        var random = Random();
-        selectedIndexItem = random.nextInt(songs.length - 1);
-      } else {
-        selectedIndexItem--;
-      }
+    if (isShuffle) {
+      var random = Random();
+      selectedIndexItem = random.nextInt(songs.length);
+    } else if (loopMode == LoopMode.all && selectedIndexItem == 0) {
+      selectedIndexItem = songs.length - 1;
+    } else if (selectedIndexItem > 0) {
+      selectedIndexItem--;
     } else {
       selectedIndexItem = songs.length - 1;
     }
@@ -110,9 +114,11 @@ class AudioPlayerManager extends ChangeNotifier {
     player.play();
     imageAnimationController?.reset(); // Reset animation cho bài mới
     imageAnimationController?.repeat();
+
     notifyListeners();
   }
 
+  // randomize bài hát
   Color? getShuffleColor() {
     return isShuffle
         ? Colors.deepPurple
@@ -121,12 +127,36 @@ class AudioPlayerManager extends ChangeNotifier {
 
   void shuffle() {
     isShuffle = !isShuffle;
-
     notifyListeners();
   }
 
+  // repeat bài hát
+  Color? getRepeatingIconColor() {
+    return switch (loopMode) {
+      LoopMode.one => Colors.deepPurple,
+      LoopMode.all => Colors.deepPurple,
+      _ => Colors.grey,
+    };
+  }
+
+  IconData repeatingIcon() {
+    // Switch expression (mới trong Dart 3)
+    return switch (loopMode) {
+      LoopMode.one => Icons.repeat_one,
+      LoopMode.all => Icons.repeat_on,
+      _ => Icons.repeat,
+    };
+  }
+
   void repeat() {
-    // TODO: Triển khai repeat
+    if (loopMode == LoopMode.off) {
+      loopMode = LoopMode.one;
+    } else if (loopMode == LoopMode.one) {
+      loopMode = LoopMode.all;
+    } else {
+      loopMode = LoopMode.off;
+    }
+    player.setLoopMode(loopMode);
     notifyListeners();
   }
 

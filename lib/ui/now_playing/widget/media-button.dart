@@ -34,8 +34,8 @@ class MediaControl extends StatelessWidget {
         ),
         MediaButtonControl(
           function: () => audioPlayerManager.repeat(),
-          icon: Icons.repeat,
-          color: Colors.deepPurple,
+          icon: audioPlayerManager.repeatingIcon(),
+          color: audioPlayerManager.getRepeatingIconColor(),
           size: 24,
         ),
       ],
@@ -101,9 +101,11 @@ class PlayButton extends StatelessWidget {
         } else {
           if (processingState == ProcessingState.completed) {
             // Nếu đã hoàn thành phát=> dừng quay
-            audioPlayerManager.imageAnimationController?.stop();
+            // audioPlayerManager.imageAnimationController?.stop();
+
           }
           return MediaButtonControl(
+
             function: () {
               audioPlayerManager.player.seek(Duration.zero);
               // Khi nhấn replay: Reset và quay lại từ đầu
