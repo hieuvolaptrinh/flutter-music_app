@@ -3,6 +3,7 @@ import "package:music_app/data/model/song.dart";
 
 import "package:music_app/ui/home/song_item_widget.dart";
 import "package:music_app/ui/now_playing/playing.dart";
+import "package:music_app/viewmodel/audio_play_manager.dart";
 
 import "package:music_app/viewmodel/home_viewmodel.dart";
 import 'package:provider/provider.dart';
@@ -10,13 +11,7 @@ import 'package:provider/provider.dart';
 class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      // create: (context) => HomeViewmodel()..loadSongs(),
-      // Gọi loadSongs ngay khi tạo vì nếu watch ở intState thì sẽ không có dữ liệu
-      create: (context) => HomeViewmodel(),
-
-      child: HomeTabPage(),
-    );
+    return HomeTabPage();
   }
 }
 
@@ -28,62 +23,57 @@ class HomeTabPage extends StatefulWidget {
 }
 
 /*
-* Nếu không có provider thì
-Tạo biến ViewModel trong mỗi StatefulWidget
-Quản lý vòng đời thủ công (gọi dispose() thủ công)
-Truyền ViewModel qua constructor từng Widget con
-Tự viết code cập nhật UI mỗi lần dữ liệu thay đổi
-Rất rối, không mở rộng được, đặc biệt với nhiều màn hình, nhiều trạng thái.
-* */
+  * Nếu không có provider thì
+  Tạo biến ViewModel trong mỗi StatefulWidget
+  Quản lý vòng đời thủ công (gọi dispose() thủ công)
+  Truyền ViewModel qua constructor từng Widget con
+  Tự viết code cập nhật UI mỗi lần dữ liệu thay đổi
+  Rất rối, không mở rộng được, đặc biệt với nhiều màn hình, nhiều trạng thái.
+  * */
 class _HomeTabPageState extends State<HomeTabPage> {
   // Trong initState(), bạn chỉ nên dùng context.read<T>(),
   /*
-  * context.read<T>() – Lấy dữ liệu, KHÔNG tự rebuild
-  * context.watch<T>() – Lấy dữ liệu, TỰ rebuild nếu dữ liệu thay đổi
-  * ví dụ:
-  * @override
-    Widget build(BuildContext context) {
-      final viewModel = context.watch<HomeViewmodel>();
-
-      if (viewModel.isLoading) {
-        return Center(child: CircularProgressIndicator());
-      }
-
-      return ListView.builder(
-        itemCount: viewModel.songs.length,
-        itemBuilder: (context, index) {
-          return ListTile(title: Text(viewModel.songs[index].title));
-        },
-      );
-}  Khi isLoading hoặc songs thay đổi → build() sẽ tự động được gọi lại.
-*
-*
-  * Consumer<T>() – Tái dựng UI theo cách TỐI ƯU Dùng khi bạn muốn chỉ một phần nhỏ của widget rebuild, tránh cả widget lớn bị rebuild.
-  *@override
+    * context.read<T>() – Lấy dữ liệu, KHÔNG tự rebuild
+    * context.watch<T>() – Lấy dữ liệu, TỰ rebuild nếu dữ liệu thay đổi
+    * ví dụ:
+    * @override
       Widget build(BuildContext context) {
-        return Column(
-          children: [
-            Text("Music App", style: TextStyle(fontSize: 24)),
-            // ✅ Chỉ phần này rebuild khi viewModel thay đổi
-            Consumer<HomeViewmodel>(
-              builder: (context, vm, child) {
-                if (vm.isLoading) return CircularProgressIndicator();
+        final viewModel = context.watch<HomeViewmodel>();
 
-                return Expanded(
-                  child: ListView.builder(
-                    itemCount: vm.songs.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(title: Text(vm.songs[index].title));
+        if (viewModel.isLoading) {
+          return Center(child: CircularProgressIndicator());
+        }
 
-  * */
+        return ListView.builder(
+          itemCount: viewModel.songs.length,
+          itemBuilder: (context, index) {
+            return ListTile(title: Text(viewModel.songs[index].title));
+          },
+        );
+  }  Khi isLoading hoặc songs thay đổi → build() sẽ tự động được gọi lại.
+  *
+  *
+    * Consumer<T>() – Tái dựng UI theo cách TỐI ƯU Dùng khi bạn muốn chỉ một phần nhỏ của widget rebuild, tránh cả widget lớn bị rebuild.
+    *@override
+        Widget build(BuildContext context) {
+          return Column(
+            children: [
+              Text("Music App", style: TextStyle(fontSize: 24)),
+              // ✅ Chỉ phần này rebuild khi viewModel thay đổi
+              Consumer<HomeViewmodel>(
+                builder: (context, vm, child) {
+                  if (vm.isLoading) return CircularProgressIndicator();
+
+                  return Expanded(
+                    child: ListView.builder(
+                      itemCount: vm.songs.length,
+                      itemBuilder: (context, index) {
+                        return ListTile(title: Text(vm.songs[index].title));
+
+    * */
   @override
   void initState() {
     super.initState();
-    // ✅ Lấy ViewModel từ Provider
-    Future.delayed(Duration.zero, () {
-      final viewModel = context.read<HomeViewmodel>();
-      viewModel.loadSongs(); // Gọi hàm load bài hát
-    });
   }
 
   // hàm
@@ -112,13 +102,21 @@ class _HomeTabPageState extends State<HomeTabPage> {
   }
 
   void navigate(Song song, List<Song> songs) {
+    // **CÁCH MỚI**: Cập nhật AudioPlayerManager trước khi navigate
+    final audioPlayerManager = context.read<AudioPlayerManager>();
+    final songIndex = songs.indexOf(song);
+
+    // Cập nhật danh sách bài hát và bài đang chọn
+    if(audioPlayerManager.selectedIndexItem != songIndex) {
+      audioPlayerManager.updateSongs(songs, songIndex);
+    }
+
+
+    // Navigate không cần truyền dữ liệu - dùng Provider
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NowPlaying(
-          playingSong: song,
-          songs: songs, // Truyền trực tiếp danh sách songs
-        ),
+        builder: (context) => NowPlayingPage(), // Không cần truyền tham số
       ),
     );
   }
@@ -166,68 +164,3 @@ class _HomeTabPageState extends State<HomeTabPage> {
     );
   }
 }
-
-//
-// class _HomeTabPageState extends State<HomeTabPage> {
-//   List<Song> songs = [];
-//   late MusicAppViewModel _viewModel = MusicAppViewModel();
-//
-//   @override
-//   void initState() {
-//     _viewModel = MusicAppViewModel();
-//     _viewModel.loadSongs();
-//     observeData(); // Lắng nghe stream dữ liệu
-//     super.initState();
-//   }
-//
-//   // Lắng nghe stream để cập nhật danh sách bài hát khi có dữ liệu mới
-//   void observeData() {
-//     _viewModel.songStream.stream.listen((songList) {
-//       setState(() {
-//         songs.addAll(songList);
-//       });
-//     });
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(body: getBody());
-//   }
-//
-//   @override
-//   void dispose() {
-//     _viewModel.songsStream.close(); // Đóng stream khi không còn sử dụng
-//     super.dispose();
-//   }
-//
-//   Widget getBody() {
-//     bool isShowLoading = songs.isEmpty;
-//     if (isShowLoading) {
-//       return Center(child: CircularProgressIndicator());
-//     }
-//     return ListView.separated(
-//       // itemBuilder: Xây dựng từng phần tử (item) trong danh sách
-//       itemBuilder: (context, position) {
-//         return Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [Text(songs[position].title)],
-//         );
-//       },
-//       // separatorBuilder: Xây dựng widget phân cách giữa 2 phần tử
-//       separatorBuilder: (context, index) {
-//         return Divider(
-//           color: Colors.red, // Màu của đường kẻ phân cách
-//           thickness: 1, // Độ dày của đường kẻ
-//           indent: 24, // Khoảng cách thụt lề bên trái
-//           endIndent: 24, // Khoảng cách thụt lề bên phải
-//         );
-//       },
-//
-//       itemCount: songs.length, // Tổng số phần tử trong danh sách
-//
-//       shrinkWrap: true,
-//
-//       // shrinkWrap = true giúp ListView chỉ chiếm đúng chiều cao nội dung của nó.
-//     );
-//   }
-// }

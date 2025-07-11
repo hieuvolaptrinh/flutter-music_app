@@ -11,30 +11,42 @@ class AudioPlayerManager extends ChangeNotifier {
   AnimationController? imageAnimationController;
   double currentAnimationPosition = 0.0;
   Stream<DurationState>? durationState;
-  final List<Song> songs;
-  int selectedIndexItem;
 
-  bool isShuffle = false; // để trộn bài hát
+  // Sử dụng late để khởi tạo sau
+  late List<Song> songs;
+  late int selectedIndexItem;
+
+  bool isShuffle = false;
   late LoopMode loopMode;
 
-  AudioPlayerManager(this.selectedIndexItem, this.songs);
+  // Thêm flag để kiểm tra đã khởi tạo chưa
+  bool _isInitialized = false;
 
-  Song get currentSong => songs[selectedIndexItem];
-
-  // Setter để cập nhật vị trí animation
-  void setCurrentAnimationPosition(double value) {
-    currentAnimationPosition = value;
-    notifyListeners(); // Thông báo để widget lắng nghe cập nhật
+  AudioPlayerManager(this.selectedIndexItem, this.songs) {
+    _initializePlayer();
   }
 
-  void initAnimationController(TickerProvider vsync) {
-    imageAnimationController = AnimationController(
-      vsync: vsync,
-      duration: const Duration(milliseconds: 12000),
-    );
+  // Getter an toàn
+  Song get currentSong =>
+      songs.isNotEmpty ? songs[selectedIndexItem] : Song.empty();
+
+  bool get isInitialized => _isInitialized;
+
+  // **THÊM METHOD MỚI**: Cập nhật danh sách bài hát và bài đang chọn
+  void updateSongs(List<Song> newSongs, int newSelectedIndex) {
+    songs = newSongs;
+    selectedIndexItem = newSelectedIndex;
+    _isInitialized = true;
+
+    // Khởi tạo player với bài hát mới
+    player.setUrl(songs[selectedIndexItem].source);
+    notifyListeners();
   }
 
-  void init() {
+  void _initializePlayer() {
+    loopMode = LoopMode.off;
+
+    // Khởi tạo durationState
     durationState = Rx.combineLatest2<Duration, PlaybackEvent, DurationState>(
       player.positionStream,
       player.playbackEventStream,
@@ -46,60 +58,76 @@ class AudioPlayerManager extends ChangeNotifier {
         );
       },
     );
-    loopMode = LoopMode.off; // Mặc định không lặp lại
-    player.setUrl(songs[selectedIndexItem].source);
+  }
+
+  void initAnimationController(TickerProvider vsync) {
+    // ✅ Dispose animation controller cũ nếu có
+    if (imageAnimationController != null) {
+      imageAnimationController!.dispose();
+    }
+
+    imageAnimationController = AnimationController(
+      vsync: vsync,
+      duration: const Duration(milliseconds: 12000),
+    );
+
+    // ✅ Reset animation position khi tạo controller mới
+    currentAnimationPosition = 0.0;
+  }
+
+  void setCurrentAnimationPosition(double value) {
+    currentAnimationPosition = value;
+    notifyListeners();
   }
 
   void togglePlayPause() {
+    if (!_isInitialized || songs.isEmpty) return;
+
     final proc = player.playbackEvent.processingState;
     if (proc == ProcessingState.loading || proc == ProcessingState.buffering) {
       return;
     }
     if (proc == ProcessingState.completed) {
       player.seek(Duration.zero);
-      imageAnimationController?.reset(); // Reset animation khi replay
+      imageAnimationController?.reset();
       imageAnimationController?.repeat();
     } else if (player.playing) {
       player.pause();
-      imageAnimationController?.stop(); // Dừng animation khi pause
-      setCurrentAnimationPosition(
-        imageAnimationController?.value ?? 0.0,
-      ); // Lưu vị trí animation
+      imageAnimationController?.stop();
+      setCurrentAnimationPosition(imageAnimationController?.value ?? 0.0);
     } else {
       player.play();
-      imageAnimationController?.forward(
-        from: currentAnimationPosition,
-      ); // Tiếp tục từ vị trí đã lưu
+      imageAnimationController?.forward(from: currentAnimationPosition);
       imageAnimationController?.repeat();
     }
     notifyListeners();
   }
 
   void skipNext() {
+    if (!_isInitialized || songs.isEmpty) return;
+
     if (isShuffle) {
       var random = Random();
       selectedIndexItem = random.nextInt(songs.length);
     } else if (loopMode == LoopMode.all &&
         selectedIndexItem == songs.length - 1) {
-      selectedIndexItem =
-          0; // Nếu đang ở bài cuối và lặp lại tất cả, quay về bài đầu tiên
+      selectedIndexItem = 0;
     } else if (selectedIndexItem < songs.length - 1) {
       selectedIndexItem++;
     } else {
       selectedIndexItem = 0;
     }
-    imageAnimationController?.reset(); // Reset animation ngay
-    // Set URL và chờ nhạc load
-    player.setUrl(
-      songs[selectedIndexItem].source,
-    ); // Sau khi set URL xong, play nhạc
-    player.play();
 
+    imageAnimationController?.reset();
+    player.setUrl(songs[selectedIndexItem].source);
+    player.play();
     imageAnimationController?.repeat();
     notifyListeners();
   }
 
   void skipPrevious() {
+    if (!_isInitialized || songs.isEmpty) return;
+
     if (isShuffle) {
       var random = Random();
       selectedIndexItem = random.nextInt(songs.length);
@@ -110,19 +138,17 @@ class AudioPlayerManager extends ChangeNotifier {
     } else {
       selectedIndexItem = songs.length - 1;
     }
+
     player.setUrl(songs[selectedIndexItem].source);
     player.play();
-    imageAnimationController?.reset(); // Reset animation cho bài mới
+    imageAnimationController?.reset();
     imageAnimationController?.repeat();
-
     notifyListeners();
   }
 
-  // randomize bài hát
+  // Các method khác giữ nguyên...
   Color? getShuffleColor() {
-    return isShuffle
-        ? Colors.deepPurple
-        : Colors.grey; // Trả về màu xanh nếu đang shuffle
+    return isShuffle ? Colors.deepPurple : Colors.grey;
   }
 
   void shuffle() {
@@ -130,7 +156,6 @@ class AudioPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  // repeat bài hát
   Color? getRepeatingIconColor() {
     return switch (loopMode) {
       LoopMode.one => Colors.deepPurple,
@@ -140,7 +165,6 @@ class AudioPlayerManager extends ChangeNotifier {
   }
 
   IconData repeatingIcon() {
-    // Switch expression (mới trong Dart 3)
     return switch (loopMode) {
       LoopMode.one => Icons.repeat_one,
       LoopMode.all => Icons.repeat_on,
@@ -162,17 +186,14 @@ class AudioPlayerManager extends ChangeNotifier {
 
   @override
   void dispose() {
-    // Dừng phát nhạc ngay lập tức
-    try {
-      player.stop();
-      player.dispose();
-    } catch (e) {
-      // Nếu có lỗi, vẫn cố gắng dispose
-      try {
-        player.dispose();
-      } catch (_) {}
+    if (imageAnimationController != null) {
+      imageAnimationController!.stop();
+      imageAnimationController!.dispose();
+      imageAnimationController = null;
     }
-    imageAnimationController?.dispose();
+
+    player.stop();
+    player.dispose();
     super.dispose();
   }
 }

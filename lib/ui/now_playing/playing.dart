@@ -1,56 +1,8 @@
 import 'package:flutter/material.dart';
-
-import 'package:music_app/data/model/song.dart';
 import 'package:music_app/viewmodel/audio_play_manager.dart';
 import 'package:music_app/ui/now_playing/widget/media-button.dart';
 import 'package:music_app/ui/now_playing/widget/progerss-bar.dart';
 import 'package:provider/provider.dart';
-
-class NowPlaying extends StatefulWidget {
-  const NowPlaying({super.key, required this.playingSong, required this.songs});
-
-  final Song playingSong;
-  final List<Song> songs;
-
-  @override
-  State<NowPlaying> createState() => _NowPlayingState();
-}
-
-class _NowPlayingState extends State<NowPlaying> {
-  late AudioPlayerManager audioPlayerManager;
-
-  @override
-  void initState() {
-    super.initState();
-    audioPlayerManager = AudioPlayerManager(
-      widget.songs.indexOf(widget.playingSong),
-      widget.songs,
-    )..init();
-  }
-
-  @override
-  void dispose() {
-    audioPlayerManager.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    //= Sử dụng PopScope để đảm bảo dispose được gọi khi thoát
-    return PopScope(
-      onPopInvoked: (didPop) {
-        // Đảm bảo dispose được gọi khi người dùng thoát
-        if (didPop) {
-          audioPlayerManager.dispose();
-        }
-      },
-      child: ChangeNotifierProvider.value(
-        value: audioPlayerManager,
-        child: NowPlayingPage(),
-      ),
-    );
-  }
-}
 
 class NowPlayingPage extends StatefulWidget {
   const NowPlayingPage({super.key});
@@ -64,12 +16,14 @@ class _NowPlayingPageState extends State<NowPlayingPage>
   @override
   void initState() {
     super.initState();
-    // Sửa: Khởi tạo AnimationController trong AudioPlayerManager
+    // ✅ Lấy AudioPlayerManager từ Provider
     final audioPlayerManager = Provider.of<AudioPlayerManager>(
       context,
       listen: false,
     );
-    audioPlayerManager.initAnimationController(this); // Truyền vsync từ widget
+
+    // Khởi tạo AnimationController
+    audioPlayerManager.initAnimationController(this);
   }
 
   @override
@@ -80,7 +34,23 @@ class _NowPlayingPageState extends State<NowPlayingPage>
 
     return Consumer<AudioPlayerManager>(
       builder: (context, audioPlayerManager, child) {
+        // **KIỂM TRA an toàn** - đảm bảo đã có dữ liệu
+        if (!audioPlayerManager.isInitialized) {
+          return SafeArea(
+            child: Scaffold(
+              appBar: AppBar(
+                title: Text('Now Playing'),
+                centerTitle: true,
+              ),
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
         final currentSong = audioPlayerManager.currentSong;
+
         return SafeArea(
           child: Scaffold(
             appBar: AppBar(
@@ -157,19 +127,21 @@ class _NowPlayingPageState extends State<NowPlayingPage>
                               currentSong.title,
                               style: Theme.of(context).textTheme.bodyMedium!
                                   .copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium!.color,
-                                  ),
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium!
+                                    .color,
+                              ),
                             ),
                             Text(
                               currentSong.artist,
                               style: Theme.of(context).textTheme.bodyMedium!
                                   .copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium!.color,
-                                  ),
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium!
+                                    .color,
+                              ),
                             ),
                           ],
                         ),
@@ -209,13 +181,19 @@ class _NowPlayingPageState extends State<NowPlayingPage>
       },
     );
   }
-
   @override
   void dispose() {
+    // ✅ Dọn dẹp animation controller khi dispose
+    final audioPlayerManager = Provider.of<AudioPlayerManager>(
+      context,
+      listen: false,
+    );
+    audioPlayerManager.imageAnimationController?.stop();
     super.dispose();
   }
 }
 
+// MediaButtonControl class giữ nguyên...
 class MediaButtonControl extends StatefulWidget {
   final void Function()? function;
   final IconData icon;

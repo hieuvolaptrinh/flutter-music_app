@@ -59,4 +59,18 @@ class Song {
 
   @override
   int get hashCode => id.hashCode;
+
+  // Phương thức để tạo một bài hát rỗng
+  factory Song.empty() {
+    return Song(
+      id: '',
+      title: '',
+      album: '',
+      artist: '',
+      source: '',
+      image: '',
+      duration: 0,
+      favorite: false,
+    );
+  }
 }

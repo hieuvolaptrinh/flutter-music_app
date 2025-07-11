@@ -3,18 +3,26 @@ import "package:music_app/ui/discovery/discovery.dart";
 import "package:music_app/ui/home/home.dart";
 import "package:music_app/ui/settings/setting.dart";
 import "package:music_app/ui/user/User.dart";
+import "package:music_app/viewmodel/audio_play_manager.dart";
 import "package:music_app/viewmodel/home_viewmodel.dart";
 import "package:provider/provider.dart";
 
 void main() {
   return runApp(
-    // MultiProvider(
-    //   // sử dụng MultiProvider để cung cấp nhiều provider
-    //   // nên để lên đây nếu quản lý provider cho toàn bộ ứng dụng, còn không thì để trong widget con
-    //   providers: [ChangeNotifierProvider(create: (_) => MusicAppViewModel())],
-    //   child: const MusicApp(),
-    // ),
-     MusicApp(),
+    MultiProvider(
+      // sử dụng MultiProvider để cung cấp nhiều provider
+      // nên để lên đây nếu quản lý provider cho toàn bộ ứng dụng, còn không thì để trong widget con
+      providers: [
+        // HomeViewmodel - quản lý danh sách bài hát
+        ChangeNotifierProvider(
+          create: (context) => HomeViewmodel()..loadSongs(),
+        ),
+        // AudioPlayerManager - quản lý phát nhạc global
+        // Khởi tạo với giá trị mặc định, sẽ được cập nhật khi user chọn bài
+        ChangeNotifierProvider(create: (context) => AudioPlayerManager(0, [])),
+      ],
+      child: const MusicApp(),
+    ), // MusicApp(),
   );
 }
 
