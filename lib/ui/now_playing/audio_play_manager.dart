@@ -1,19 +1,18 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:music_app/data/model/duration_state.dart';
 import 'package:rxdart/rxdart.dart';
-
+//đáng lý ra là các sự kiện các nút sẽ viết ở đây, sau đó các nút sẽ gọi callback ở đây
 class AudioPlayerManager {
   // 1. Tạo một instance của AudioPlayer từ thư viện just_audio
   final player = AudioPlayer();
 
-  // 2. Stream phát ra các trạng thái thời gian (progress/buffered/total)
   Stream<DurationState>? durationState;
 
   String songURl;
 
   AudioPlayerManager(this.songURl);
 
-  // 5. Phương thức init() dùng để thiết lập stream durationState bằng cách
+  // 5.ức init() dùng để thiết lập stream durationState bằng cách
   //    kết hợp hai stream có sẵn của player: positionStream và playbackEventStream
   void init() {
     durationState = Rx.combineLatest2<Duration, PlaybackEvent, DurationState>(
@@ -37,7 +36,7 @@ class AudioPlayerManager {
   }
 
   void dispose() {
-    // 6. Phương thức dispose() để giải phóng tài nguyên khi không cần thiết nữa
+    // để giải phóng tài nguyên khi không cần thiết nữa= > thoát trang thì hết hát
     player.dispose();
   }
 }

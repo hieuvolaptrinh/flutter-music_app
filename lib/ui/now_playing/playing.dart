@@ -4,6 +4,8 @@ import 'package:just_audio/just_audio.dart';
 import 'package:music_app/data/model/duration_state.dart';
 import 'package:music_app/data/model/song.dart';
 import 'package:music_app/ui/now_playing/audio_play_manager.dart';
+import 'package:music_app/ui/now_playing/widget/media-button.dart';
+import 'package:music_app/ui/now_playing/widget/progess-bar.dart';
 
 class NowPlaying extends StatelessWidget {
   const NowPlaying({super.key, required this.playingSong, required this.songs});
@@ -90,7 +92,7 @@ class _NowPlayingPageState extends State<NowPlayingPage>
               ),
               SizedBox(height: 16),
               Text("~~~~~~~~~~~~~~~~~~~~~~~~~~"),
-              SizedBox(height: 48),
+              SizedBox(height: 20),
               // để xoay hình ảnh
               RotationTransition(
                 turns: Tween(
@@ -172,7 +174,7 @@ class _NowPlayingPageState extends State<NowPlayingPage>
                   right: 24,
                   bottom: 12,
                 ),
-                child: _progessBar(),
+                child: ProgressBarWidget(audioPlayerManager: _audioPlayerManager),
               ),
               Padding(
                 padding: EdgeInsets.only(
@@ -181,7 +183,7 @@ class _NowPlayingPageState extends State<NowPlayingPage>
                   right: 24,
                   bottom: 8,
                 ),
-                child: _mediaButtons(),
+                child: MediaControl(audioPlayerManager: _audioPlayerManager),
               ),
             ],
           ),
@@ -197,69 +199,8 @@ class _NowPlayingPageState extends State<NowPlayingPage>
     super.dispose();
   }
 
-  // nut bấm điều khiển media
-  Widget _mediaButtons() {
-    return SizedBox(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          MediaButtonControl(
-            function: null,
-            icon: Icons.shuffle,
-            color: Colors.deepPurple,
-            size: 24,
-          ),
-          MediaButtonControl(
-            function: null,
-            icon: Icons.skip_previous,
-            color: Colors.deepPurple,
-            size: 36,
-          ),
-          _playButton(),
-          MediaButtonControl(
-            function: null,
-            icon: Icons.skip_next,
-            color: Colors.deepPurple,
-            size: 36,
-          ),
-          MediaButtonControl(
-            function: null,
-            icon: Icons.repeat,
-            color: Colors.deepPurple,
-            size: 24,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // thanh tiến độ phát nhạt
-  StreamBuilder<DurationState> _progessBar() {
-    return StreamBuilder<DurationState>(
-      stream: _audioPlayerManager.durationState,
-      builder: (context, snapshot) {
-        final durationState = snapshot.data;
-        final progress = durationState?.progress ?? Duration.zero;
-        final buffered = durationState?.buffered ?? Duration.zero;
-        final total = durationState?.total ?? Duration.zero;
-        return ProgressBar(
-          progress: progress,
-          total: total,
-          buffered: buffered,
-          onSeek: _audioPlayerManager.player.seek,
-          // sự kiện khi người dùng kéo thanh tiến độ
-          barHeight: 5,
-          barCapShape: BarCapShape.round,
-          baseBarColor: Colors.lightBlue.withOpacity(0.6),
-          progressBarColor: Colors.indigo,
-          bufferedBarColor: Colors.lightBlue,
-          thumbColor: Colors.indigoAccent,
-          thumbGlowColor: Colors.orange,
-          thumbRadius: 10,
-        );
-      },
-    );
-  }
+  // thanh tiến độ phát nhạc
+ 
 
   // sự kiện khi nhấn nút play
   StreamBuilder<PlayerState> _playButton() {
