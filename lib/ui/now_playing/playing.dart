@@ -38,13 +38,8 @@ class _NowPlayingPageState extends State<NowPlayingPage>
         if (!audioPlayerManager.isInitialized) {
           return SafeArea(
             child: Scaffold(
-              appBar: AppBar(
-                title: Text('Now Playing'),
-                centerTitle: true,
-              ),
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
+              appBar: AppBar(title: Text('Now Playing'), centerTitle: true),
+              body: Center(child: CircularProgressIndicator()),
             ),
           );
         }
@@ -69,118 +64,116 @@ class _NowPlayingPageState extends State<NowPlayingPage>
                 IconButton(icon: Icon(Icons.more_vert), onPressed: () {}),
               ],
             ),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "${currentSong.album} ",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            body: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "${currentSong.album} ",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                Text("~~~~~~~~~~~~~~~~~~~~~~~~~~"),
+                SizedBox(height: 20),
+                RotationTransition(
+                  turns: Tween(
+                    begin: 0.0,
+                    end: 1.0,
+                  ).animate(audioPlayerManager.imageAnimationController!),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(radius),
+                    child: FadeInImage.assetNetwork(
+                      placeholder: "assets/music.png",
+                      image: currentSong.image,
+                      width: screenWidth - delta,
+                      height: screenWidth - delta,
+                      fit: BoxFit.cover,
+                      imageErrorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          "assets/music.png",
+                          width: screenWidth - delta,
+                          height: screenWidth - delta,
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    ),
                   ),
-                  SizedBox(height: 16),
-                  Text("~~~~~~~~~~~~~~~~~~~~~~~~~~"),
-                  SizedBox(height: 20),
-                  RotationTransition(
-                    turns: Tween(
-                      begin: 0.0,
-                      end: 1.0,
-                    ).animate(audioPlayerManager.imageAnimationController!),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(radius),
-                      child: FadeInImage.assetNetwork(
-                        placeholder: "assets/music.png",
-                        image: currentSong.image,
-                        width: screenWidth - delta,
-                        height: screenWidth - delta,
-                        fit: BoxFit.cover,
-                        imageErrorBuilder: (context, error, stackTrace) {
-                          return Image.asset(
-                            "assets/music.png",
-                            width: screenWidth - delta,
-                            height: screenWidth - delta,
-                            fit: BoxFit.cover,
-                          );
-                        },
+                ),
+                Container(
+                  margin: EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      IconButton(
+                        onPressed: () {},
+                        icon: Icon(Icons.share),
+                        color: Theme.of(context).colorScheme.primary,
                       ),
-                    ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Text(
+                            currentSong.title,
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.color,
+                                ),
+                          ),
+                          Text(
+                            currentSong.artist,
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.color,
+                                ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () {},
+                        icon: Icon(Icons.favorite),
+                        color: Theme.of(context).colorScheme.surfaceDim,
+                      ),
+                    ],
                   ),
-                  Container(
-                    margin: EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        IconButton(
-                          onPressed: () {},
-                          icon: Icon(Icons.share),
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Text(
-                              currentSong.title,
-                              style: Theme.of(context).textTheme.bodyMedium!
-                                  .copyWith(
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium!
-                                    .color,
-                              ),
-                            ),
-                            Text(
-                              currentSong.artist,
-                              style: Theme.of(context).textTheme.bodyMedium!
-                                  .copyWith(
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium!
-                                    .color,
-                              ),
-                            ),
-                          ],
-                        ),
-                        IconButton(
-                          onPressed: () {},
-                          icon: Icon(Icons.favorite),
-                          color: Theme.of(context).colorScheme.surfaceDim,
-                        ),
-                      ],
-                    ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: 12,
+                    left: 24,
+                    right: 24,
+                    bottom: 12,
                   ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                      top: 12,
-                      left: 24,
-                      right: 24,
-                      bottom: 12,
-                    ),
-                    child: ProgressBarWidget(
-                      audioPlayerManager: audioPlayerManager,
-                    ),
+                  child: ProgressBarWidget(
+                    audioPlayerManager: audioPlayerManager,
                   ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                      top: 8,
-                      left: 24,
-                      right: 24,
-                      bottom: 8,
-                    ),
-                    child: MediaControl(audioPlayerManager: audioPlayerManager),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: 8,
+                    left: 24,
+                    right: 24,
+                    bottom: 8,
                   ),
-                ],
-              ),
+                  child: MediaControl(audioPlayerManager: audioPlayerManager),
+                ),
+              ],
             ),
           ),
         );
       },
     );
   }
+
   @override
   void dispose() {
     // ✅ Dọn dẹp animation controller khi dispose

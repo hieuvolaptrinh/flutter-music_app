@@ -50,14 +50,12 @@ class AudioPlayerManager extends ChangeNotifier {
     durationState = Rx.combineLatest2<Duration, PlaybackEvent, DurationState>(
       player.positionStream,
       player.playbackEventStream,
-      (position, playbackEvent) {
-        return DurationState(
-          progress: position,
-          buffered: playbackEvent.bufferedPosition,
-          total: playbackEvent.duration,
-        );
-      },
-    );
+      (position, playbackEvent) => DurationState(
+        progress: position,
+        buffered: playbackEvent.bufferedPosition,
+        total: playbackEvent.duration,
+      ),
+    ).shareReplay(maxSize: 1);
   }
 
   void initAnimationController(TickerProvider vsync) {
