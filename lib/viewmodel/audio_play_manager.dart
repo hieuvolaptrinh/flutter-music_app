@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:music_app/data/model/duration_state.dart';
@@ -6,35 +8,26 @@ import 'package:rxdart/rxdart.dart';
 
 class AudioPlayerManager extends ChangeNotifier {
   final player = AudioPlayer();
-
-  AnimationController? _imageAnimationController;
-  double _currentAnimationPosition = 0.0;
-  bool _isDisposed = false; // Flag để tránh dispose nhiều lần
-
+  AnimationController? imageAnimationController;
+  double currentAnimationPosition = 0.0;
   Stream<DurationState>? durationState;
   final List<Song> songs;
-  int _selectedIndexItem;
+  int selectedIndexItem;
 
-  AudioPlayerManager(this._selectedIndexItem, this.songs);
+  bool isShuffle = false; // để trộn bài hát
 
-  // Getter để truy cập từ bên ngoài
-  int get selectedIndexItem => _selectedIndexItem;
+  AudioPlayerManager(this.selectedIndexItem, this.songs);
 
-  Song get currentSong => songs[_selectedIndexItem];
-
-  AnimationController? get imageAnimationController =>
-      _imageAnimationController;
-
-  double get currentAnimationPosition => _currentAnimationPosition;
+  Song get currentSong => songs[selectedIndexItem];
 
   // Setter để cập nhật vị trí animation
   void setCurrentAnimationPosition(double value) {
-    _currentAnimationPosition = value;
+    currentAnimationPosition = value;
     notifyListeners(); // Thông báo để widget lắng nghe cập nhật
   }
 
   void initAnimationController(TickerProvider vsync) {
-    _imageAnimationController = AnimationController(
+    imageAnimationController = AnimationController(
       vsync: vsync,
       duration: const Duration(milliseconds: 12000),
     );
@@ -52,7 +45,7 @@ class AudioPlayerManager extends ChangeNotifier {
         );
       },
     );
-    player.setUrl(songs[_selectedIndexItem].source);
+    player.setUrl(songs[selectedIndexItem].source);
   }
 
   void togglePlayPause() {
@@ -62,50 +55,73 @@ class AudioPlayerManager extends ChangeNotifier {
     }
     if (proc == ProcessingState.completed) {
       player.seek(Duration.zero);
-      _imageAnimationController?.reset(); // Reset animation khi replay
-      _imageAnimationController?.repeat();
+      imageAnimationController?.reset(); // Reset animation khi replay
+      imageAnimationController?.repeat();
     } else if (player.playing) {
       player.pause();
-      _imageAnimationController?.stop(); // Dừng animation khi pause
+      imageAnimationController?.stop(); // Dừng animation khi pause
       setCurrentAnimationPosition(
-        _imageAnimationController?.value ?? 0.0,
+        imageAnimationController?.value ?? 0.0,
       ); // Lưu vị trí animation
     } else {
       player.play();
-      _imageAnimationController?.forward(
-        from: _currentAnimationPosition,
+      imageAnimationController?.forward(
+        from: currentAnimationPosition,
       ); // Tiếp tục từ vị trí đã lưu
-      _imageAnimationController?.repeat();
+      imageAnimationController?.repeat();
     }
     notifyListeners();
   }
 
   void skipNext() {
-    if (_selectedIndexItem < songs.length - 1) {
-      _selectedIndexItem++;
-      _imageAnimationController?.reset(); // Reset animation ngay
-      // Set URL và chờ nhạc load
-      player.setUrl(songs[_selectedIndexItem].source);        // Sau khi set URL xong, play nhạc
-        player.play();
-
-      _imageAnimationController?.repeat();
-      notifyListeners();
+    if (selectedIndexItem < songs.length - 1) {
+      if (isShuffle) {
+        var random = Random();
+        selectedIndexItem = random.nextInt(songs.length - 1);
+      } else {
+        selectedIndexItem++;
+      }
+    } else {
+      selectedIndexItem = 0;
     }
+    imageAnimationController?.reset(); // Reset animation ngay
+    // Set URL và chờ nhạc load
+    player.setUrl(
+      songs[selectedIndexItem].source,
+    ); // Sau khi set URL xong, play nhạc
+    player.play();
+
+    imageAnimationController?.repeat();
+    notifyListeners();
   }
 
   void skipPrevious() {
-    if (_selectedIndexItem > 0) {
-      _selectedIndexItem--;
-      player.setUrl(songs[_selectedIndexItem].source);
-      player.play();
-      _imageAnimationController?.reset(); // Reset animation cho bài mới
-      _imageAnimationController?.repeat();
-      notifyListeners();
+    if (selectedIndexItem > 0) {
+      if (isShuffle) {
+        var random = Random();
+        selectedIndexItem = random.nextInt(songs.length - 1);
+      } else {
+        selectedIndexItem--;
+      }
+    } else {
+      selectedIndexItem = songs.length - 1;
     }
+    player.setUrl(songs[selectedIndexItem].source);
+    player.play();
+    imageAnimationController?.reset(); // Reset animation cho bài mới
+    imageAnimationController?.repeat();
+    notifyListeners();
+  }
+
+  Color? getShuffleColor() {
+    return isShuffle
+        ? Colors.deepPurple
+        : Colors.grey; // Trả về màu xanh nếu đang shuffle
   }
 
   void shuffle() {
-    // TODO: Triển khai shuffle
+    isShuffle = !isShuffle;
+
     notifyListeners();
   }
 
@@ -116,10 +132,6 @@ class AudioPlayerManager extends ChangeNotifier {
 
   @override
   void dispose() {
-    // Kiểm tra xem đã dispose chưa để tránh dispose nhiều lần
-    if (_isDisposed) return;
-    _isDisposed = true;
-
     // Dừng phát nhạc ngay lập tức
     try {
       player.stop();
@@ -130,7 +142,7 @@ class AudioPlayerManager extends ChangeNotifier {
         player.dispose();
       } catch (_) {}
     }
-    _imageAnimationController?.dispose();
+    imageAnimationController?.dispose();
     super.dispose();
   }
 }

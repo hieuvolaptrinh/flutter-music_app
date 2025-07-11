@@ -16,7 +16,7 @@ class MediaControl extends StatelessWidget {
         MediaButtonControl(
           function: () => audioPlayerManager.shuffle(),
           icon: Icons.shuffle,
-          color: Colors.deepPurple,
+          color: audioPlayerManager.getShuffleColor(),
           size: 24,
         ),
         MediaButtonControl(
@@ -64,7 +64,6 @@ class PlayButton extends StatelessWidget {
 
         if (processingState == ProcessingState.loading ||
             processingState == ProcessingState.buffering) {
-
           return Container(
             margin: const EdgeInsets.all(8),
             width: size,
