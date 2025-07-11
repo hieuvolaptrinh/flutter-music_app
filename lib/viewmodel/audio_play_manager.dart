@@ -1,37 +1,49 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:music_app/data/model/duration_state.dart';
 import 'package:music_app/data/model/song.dart';
 import 'package:rxdart/rxdart.dart';
 
-//đáng lý ra là các sự kiện các nút sẽ viết ở đây, sau đó các nút sẽ gọi callback ở đây
 class AudioPlayerManager extends ChangeNotifier {
-  // 1. Tạo một instance của AudioPlayer từ thư viện just_audio
   final player = AudioPlayer();
 
-  Stream<DurationState>? durationState;
+  AnimationController? _imageAnimationController;
+  double _currentAnimationPosition = 0.0;
+  bool _isDisposed = false; // Flag để tránh dispose nhiều lần
 
+  Stream<DurationState>? durationState;
   final List<Song> songs;
   int _selectedIndexItem;
 
-  // final ValueNotifier<int> selectedIndexItem; // Cách 1:nếu dùng ValueNotifier để có thể cập nhật giao diện khi thay đổi
-
   AudioPlayerManager(this._selectedIndexItem, this.songs);
 
-  // getter/setter
+  // Getter để truy cập từ bên ngoài
   int get selectedIndexItem => _selectedIndexItem;
 
   Song get currentSong => songs[_selectedIndexItem];
 
-  // 5.ức init() dùng để thiết lập stream durationState bằng cách
-  //    kết hợp hai stream có sẵn của player: positionStream và playbackEventStream
+  AnimationController? get imageAnimationController =>
+      _imageAnimationController;
+
+  double get currentAnimationPosition => _currentAnimationPosition;
+
+  // Setter để cập nhật vị trí animation
+  void setCurrentAnimationPosition(double value) {
+    _currentAnimationPosition = value;
+    notifyListeners(); // Thông báo để widget lắng nghe cập nhật
+  }
+
+  void initAnimationController(TickerProvider vsync) {
+    _imageAnimationController = AnimationController(
+      vsync: vsync,
+      duration: const Duration(milliseconds: 12000),
+    );
+  }
+
   void init() {
     durationState = Rx.combineLatest2<Duration, PlaybackEvent, DurationState>(
-      // a) player.positionStream phát ra Duration – vị trí (position) hiện tại
       player.positionStream,
-      // b) player.playbackEventStream phát ra PlaybackEvent – chứa bufferedPosition, duration, vv.
       player.playbackEventStream,
-      // c) lambda để "kết hợp" hai giá trị trên thành một DurationState
       (position, playbackEvent) {
         return DurationState(
           progress: position,
@@ -41,32 +53,43 @@ class AudioPlayerManager extends ChangeNotifier {
       },
     );
     player.setUrl(songs[_selectedIndexItem].source);
-    // player.setUrl(songs[selectedIndexItem.value].source); //Cách 1
   }
 
-  /// Toggle play/pause hoặc replay nếu đã hoàn thành
   void togglePlayPause() {
     final proc = player.playbackEvent.processingState;
     if (proc == ProcessingState.loading || proc == ProcessingState.buffering) {
-      // có thể hiện loading, không thay đổi
       return;
     }
     if (proc == ProcessingState.completed) {
       player.seek(Duration.zero);
+      _imageAnimationController?.reset(); // Reset animation khi replay
+      _imageAnimationController?.repeat();
     } else if (player.playing) {
       player.pause();
+      _imageAnimationController?.stop(); // Dừng animation khi pause
+      setCurrentAnimationPosition(
+        _imageAnimationController?.value ?? 0.0,
+      ); // Lưu vị trí animation
     } else {
       player.play();
+      _imageAnimationController?.forward(
+        from: _currentAnimationPosition,
+      ); // Tiếp tục từ vị trí đã lưu
+      _imageAnimationController?.repeat();
     }
-    notifyListeners(); // Thông báo để cập nhật giao diện
+    notifyListeners();
   }
 
   void skipNext() {
     if (_selectedIndexItem < songs.length - 1) {
       _selectedIndexItem++;
-      player.setUrl(songs[_selectedIndexItem].source);
-      player.play();
-      notifyListeners(); // Thông báo để cập nhật giao diện
+      _imageAnimationController?.reset(); // Reset animation ngay
+      // Set URL và chờ nhạc load
+      player.setUrl(songs[_selectedIndexItem].source);        // Sau khi set URL xong, play nhạc
+        player.play();
+
+      _imageAnimationController?.repeat();
+      notifyListeners();
     }
   }
 
@@ -75,6 +98,8 @@ class AudioPlayerManager extends ChangeNotifier {
       _selectedIndexItem--;
       player.setUrl(songs[_selectedIndexItem].source);
       player.play();
+      _imageAnimationController?.reset(); // Reset animation cho bài mới
+      _imageAnimationController?.repeat();
       notifyListeners();
     }
   }
@@ -89,10 +114,23 @@ class AudioPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   void dispose() {
-    super.dispose();
+    // Kiểm tra xem đã dispose chưa để tránh dispose nhiều lần
+    if (_isDisposed) return;
+    _isDisposed = true;
 
-    // để giải phóng tài nguyên khi không cần thiết nữa= > thoát trang thì hết hát
-    player.dispose();
+    // Dừng phát nhạc ngay lập tức
+    try {
+      player.stop();
+      player.dispose();
+    } catch (e) {
+      // Nếu có lỗi, vẫn cố gắng dispose
+      try {
+        player.dispose();
+      } catch (_) {}
+    }
+    _imageAnimationController?.dispose();
+    super.dispose();
   }
 }

@@ -1,23 +1,53 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
+
 import 'package:music_app/data/model/song.dart';
 import 'package:music_app/viewmodel/audio_play_manager.dart';
 import 'package:music_app/ui/now_playing/widget/media-button.dart';
 import 'package:music_app/ui/now_playing/widget/progerss-bar.dart';
 import 'package:provider/provider.dart';
 
-class NowPlaying extends StatelessWidget {
+class NowPlaying extends StatefulWidget {
   const NowPlaying({super.key, required this.playingSong, required this.songs});
 
   final Song playingSong;
   final List<Song> songs;
 
   @override
+  State<NowPlaying> createState() => _NowPlayingState();
+}
+
+class _NowPlayingState extends State<NowPlaying> {
+  late AudioPlayerManager audioPlayerManager;
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayerManager = AudioPlayerManager(
+      widget.songs.indexOf(widget.playingSong),
+      widget.songs,
+    )..init();
+  }
+
+  @override
+  void dispose() {
+    audioPlayerManager.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) =>
-          AudioPlayerManager(songs.indexOf(playingSong), songs)..init(),
-      child: NowPlayingPage(),
+    //= Sử dụng PopScope để đảm bảo dispose được gọi khi thoát
+    return PopScope(
+      onPopInvoked: (didPop) {
+        // Đảm bảo dispose được gọi khi người dùng thoát
+        if (didPop) {
+          audioPlayerManager.dispose();
+        }
+      },
+      child: ChangeNotifierProvider.value(
+        value: audioPlayerManager,
+        child: NowPlayingPage(),
+      ),
     );
   }
 }
@@ -31,39 +61,22 @@ class NowPlayingPage extends StatefulWidget {
 
 class _NowPlayingPageState extends State<NowPlayingPage>
     with SingleTickerProviderStateMixin {
-  late AnimationController _imageAnimationController;
-
-  // late AudioPlayerManager _audioPlayerManager;
-
-  // late int _selectedIndexItem; // chỉ số bài hát hiện tại
-
-  // xài provider thì không cần nữa
   @override
   void initState() {
     super.initState();
-    _imageAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 12000),
+    // Sửa: Khởi tạo AnimationController trong AudioPlayerManager
+    final audioPlayerManager = Provider.of<AudioPlayerManager>(
+      context,
+      listen: false,
     );
-    // cachs2 sử dụng provider để quản lý trạng thái
-    // // Tìm index của bài đang chơi trong danh sách
-    // final initialIndex = widget.songs.indexOf(widget.playingSong);
-    //
-    // // Tạo ValueNotifier với giá trị khởi đầu là index này
-    // final indexNotifier = ValueNotifier<int>(initialIndex);
-    // _audioPlayerManager = AudioPlayerManager(indexNotifier, widget.songs);
-    // _audioPlayerManager.init();
+    audioPlayerManager.initAnimationController(this); // Truyền vsync từ widget
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(
-      context,
-    ).size.width; // Lấy chiều rộng của màn hình
-
+    final screenWidth = MediaQuery.of(context).size.width;
     const delta = 64;
-    // bán kính cong
-    final radius = (screenWidth - delta) / 2; // Tính bán kính cong dựa trên
+    final radius = (screenWidth - delta) / 2;
 
     return Consumer<AudioPlayerManager>(
       builder: (context, audioPlayerManager, child) {
@@ -72,18 +85,15 @@ class _NowPlayingPageState extends State<NowPlayingPage>
           child: Scaffold(
             appBar: AppBar(
               elevation: 10,
-              // Nút back bên trái
               leading: IconButton(
                 icon: Icon(Icons.arrow_back),
                 onPressed: () => Navigator.pop(context),
               ),
-              // Tiêu đề ở giữa
               title: Text(
                 'Now Playing',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               centerTitle: true,
-              // Icon ba chấm + badge đỏ số 1
               actions: [
                 IconButton(icon: Icon(Icons.search), onPressed: () {}),
                 IconButton(icon: Icon(Icons.more_vert), onPressed: () {}),
@@ -94,7 +104,6 @@ class _NowPlayingPageState extends State<NowPlayingPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  //  widget. để lấy biến từidget cha
                   Text(
                     "${currentSong.album} ",
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -102,14 +111,11 @@ class _NowPlayingPageState extends State<NowPlayingPage>
                   SizedBox(height: 16),
                   Text("~~~~~~~~~~~~~~~~~~~~~~~~~~"),
                   SizedBox(height: 20),
-                  // để xoay hình ảnh
                   RotationTransition(
                     turns: Tween(
                       begin: 0.0,
                       end: 1.0,
-                    ).animate(_imageAnimationController),
-
-                    // hình ảnh của bài hát
+                    ).animate(audioPlayerManager.imageAnimationController!),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(radius),
                       child: FadeInImage.assetNetwork(
@@ -156,7 +162,6 @@ class _NowPlayingPageState extends State<NowPlayingPage>
                                     ).textTheme.bodyMedium!.color,
                                   ),
                             ),
-
                             Text(
                               currentSong.artist,
                               style: Theme.of(context).textTheme.bodyMedium!
@@ -207,10 +212,8 @@ class _NowPlayingPageState extends State<NowPlayingPage>
 
   @override
   void dispose() {
-    _imageAnimationController.dispose();
     super.dispose();
   }
-
 }
 
 class MediaButtonControl extends StatefulWidget {
