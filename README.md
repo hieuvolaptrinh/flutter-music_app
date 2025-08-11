@@ -21,12 +21,12 @@
 
 **Flutter Music App** không chỉ là một ứng dụng nghe nhạc thông thường - đây là một **kiệt tác công nghệ** được chế tác tỉ mỉ với tình yêu dành cho âm nhạc và đam mê lập trình! 
 
-Ứng dụng được thiết kế với triết lý **"Âm nhạc là ngôn ngữ của tâm hồn"**, mang đến trải nghiệm nghe nhạc **mượt mà, hiện đại và đầy cảm xúc** trên nền tảng di động.
+Ứng dụng được thiết kế với triết lý **"Âm nhạc là ngôn ngữ của tâm hồn"**, mang đến trải nghiệm nghe nhạc **mượt mà, hiện đại và đầy cảm xúc** trên nền tảng di động. Sử dụng **mô hình MVVM (Model-View-ViewModel)** kết hợp với **Provider** để quản lý state hiệu quả và maintainable.
 
 ### 🎯 Tại Sao Chọn Flutter Music App?
 
 - 🎨 **UI/UX Tuyệt Đẹp**: Giao diện được thiết kế theo chuẩn Material Design 3, mượt mà như lụa
-- ⚡ **Hiệu Suất Vượt Trội**: Sử dụng kiến trúc MVVM với Provider pattern cho performance tối ưu
+- ⚡ **Hiệu Suất Vượt Trội**: Sử dụng kiến trúc MVVM với Provider state management cho performance tối ưu
 - 🔊 **Chất Lượng Âm Thanh Cao**: Tích hợp Just Audio engine cho trải nghiệm âm thanh crystal clear
 - 🎵 **Streaming Không Giới Hạn**: Hỗ trợ phát nhạc online với khả năng cache thông minh
 - 📱 **Cross-Platform**: Một code base, chạy mượt trên cả Android và iOS
@@ -69,7 +69,7 @@
 
 ## 🏗️ Kiến Trúc Hệ Thống
 
-Dự án được xây dựng theo mô hình **MVVM (Model-View-ViewModel)** kết hợp với **Clean Architecture**, đảm bảo code dễ maintain, test và scale:
+Dự án được xây dựng theo mô hình **MVVM (Model-View-ViewModel)** kết hợp với **Provider State Management**, đảm bảo code dễ maintain, test và scale. Provider được sử dụng để quản lý state global một cách reactive và hiệu quả:
 
 ```
 📁 lib/
@@ -83,16 +83,16 @@ Dự án được xây dựng theo mô hình **MVVM (Model-View-ViewModel)** k�
 │       ├── local.dart         # Local storage (SQLite, SharedPrefs)
 │       └── remote.dart        # API services (HTTP client)
 │
-├── 📂 ui/                     # Presentation Layer
+├── 📂 ui/                     # Presentation Layer (View)
 │   ├── 📂 home/               # Home screen với song list
 │   ├── 📂 now_playing/        # Player screen với controls
 │   ├── 📂 discovery/          # Music discovery
 │   ├── 📂 settings/           # App settings
 │   └── 📂 user/               # User profile
 │
-└── 📂 viewmodel/              # Business Logic Layer
-    ├── audio_play_manager.dart   # Core audio engine
-    └── home_viewmodel.dart      # Home screen logic
+└── 📂 viewmodel/              # Business Logic Layer (ViewModel)
+    ├── audio_play_manager.dart   # Core audio engine với Provider
+    └── home_viewmodel.dart      # Home screen logic với Provider
 ```
 
 ### 🎯 **Core Technologies Stack**
@@ -100,11 +100,32 @@ Dự án được xây dựng theo mô hình **MVVM (Model-View-ViewModel)** k�
 | Technology | Purpose | Why We Choose |
 |------------|---------|---------------|
 | **Flutter 3.8.1+** | UI Framework | Cross-platform, hot reload, native performance |
-| **Provider 6.1.5** | State Management | Lightweight, reactive, easy testing |
+| **Provider 6.1.5** | State Management | Lightweight, reactive, easy testing, MVVM pattern |
 | **Just Audio 0.10.4** | Audio Engine | Professional-grade, low latency, format support |
 | **RxDart 0.28.0** | Reactive Programming | Stream composition, powerful operators |
 | **HTTP 1.4.0** | Network Layer | RESTful API integration, robust error handling |
 | **Audio Progress Bar 2.0.3** | UI Component | Beautiful, customizable progress indicators |
+
+### 🔧 **Provider State Management Architecture**
+
+```dart
+// MultiProvider setup trong main.dart
+MultiProvider(
+  providers: [
+    ChangeNotifierProvider(create: (_) => HomeViewmodel()..loadSongs()),
+    ChangeNotifierProvider(create: (_) => AudioPlayerManager(0, [])),
+  ],
+  child: MusicApp(),
+)
+
+// ViewModel với ChangeNotifier
+class AudioPlayerManager extends ChangeNotifier {
+  // State management với Provider pattern
+  void updateState() {
+    notifyListeners(); // Tự động update UI
+  }
+}
+```
 
 ---
 
@@ -301,23 +322,53 @@ Dự án được phát hành dưới **MIT License** - xem [LICENSE](LICENSE) �
 
 ---
 
+## 💰 Support & Donate
+
+Nếu bạn thấy project này hữu ích và muốn ủng hộ việc phát triển thêm những tính năng mới, bạn có thể donate qua:
+
+<div align="center">
+
+### 🏦 **Vietcombank**
+**Số tài khoản**: `1025212713`  
+**Chủ tài khoản**: `Võ Nguyễn Đại Hiếu`  
+**Nội dung**: `Flutter Music App Support`
+
+[![Donate](https://img.shields.io/badge/Donate-Vietcombank-red?style=for-the-badge&logo=paypal)](https://vietcombank.com.vn)
+
+*Mọi sự đóng góp đều được trân trọng và sẽ giúp duy trì & phát triển project! 🙏*
+
+</div>
+
+---
+
 ## 👨‍💻 Credits & Acknowledgments
 
-**Phát triển bởi**: [Tên của bạn]  
+**Phát triển bởi**: **Võ Nguyễn Đại Hiếu**  
 **University**: University of Technology and Education  
 **Course**: Mobile Application Development  
+
+### 📱 **Contact & Social**
+
+<div align="center">
+
+[![GitHub](https://img.shields.io/badge/GitHub-hieuvolaptrinh-181717?style=for-the-badge&logo=github)](https://github.com/hieuvolaptrinh)
+[![Facebook](https://img.shields.io/badge/Facebook-HieuVo.hv-1877F2?style=for-the-badge&logo=facebook)](https://www.facebook.com/HieuVo.hv)
+[![Email](https://img.shields.io/badge/Email-vndhieuak@gmail.com-EA4335?style=for-the-badge&logo=gmail)](mailto:vndhieuak@gmail.com)
+
+</div>
 
 ### **Special Thanks**
 
 - 🎵 **Music API**: [thantrieu.com](https://thantrieu.com) - Cung cấp high-quality music streaming
 - 🎨 **Design Inspiration**: Material Design 3, Spotify, Apple Music
 - 📚 **Learning Resources**: Flutter Documentation, Dart.dev, Stack Overflow community
+- 🛠️ **State Management**: Provider package for elegant MVVM implementation
 
 ---
 
 <div align="center">
 
-**Made with ❤️ and ☕ by Flutter enthusiasts**
+**Made with ❤️ and ☕ by Võ Nguyễn Đại Hiếu**
 
 *"Code is poetry, Flutter is the canvas" 🎨*
 
@@ -325,7 +376,7 @@ Dự án được phát hành dưới **MIT License** - xem [LICENSE](LICENSE) �
 
 ⭐ **Nếu project này hữu ích, đừng quên star repo nhé!** ⭐
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/flutter-music-app?style=social)](https://github.com/yourusername/flutter-music-app/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/flutter-music-app?style=social)](https://github.com/yourusername/flutter-music-app/network)
+[![GitHub stars](https://img.shields.io/github/stars/hieuvolaptrinh/flutter-music-app?style=social)](https://github.com/hieuvolaptrinh/flutter-music-app/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/hieuvolaptrinh/flutter-music-app?style=social)](https://github.com/hieuvolaptrinh/flutter-music-app/network)
 
 </div>
