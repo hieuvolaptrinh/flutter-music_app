@@ -15,3 +15,4 @@ class DurationState {
     this.total,
   });
 }
+
